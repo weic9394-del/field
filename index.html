@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ja-JP">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FIELD</title>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#222222">
+
+    <style>#posts img {
+    width: 100%;
+    max-height: 350px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    }
+    body {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 30px 20px;
+        font-family: sans-serif;
+        background-color: #f4f4f4;
+    }
+
+    input,
+    textarea {
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 12px;
+        padding: 12px;
+        border: 1px solid #cccccc;
+        border-radius: 8px;
+        font-size: 16px;
+    }
+
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        background-color: #222222;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background-color: #444444;
+    }
+
+    #posts {
+        margin-top: 30px;
+    }
+
+    #posts > div {
+        margin-bottom: 16px;
+        padding: 18px;
+        border-radius: 12px;
+        background-color: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    #posts h3 {
+        margin: 0 0 10px;
+    }
+
+    #posts p {
+        margin: 6px 0;
+    }
+    .deleteButton {
+    margin-top: 14px;
+    background-color: #dddddd;
+    color: #222222;
+}
+
+.deleteButton:hover {
+    background-color: #cccccc;
+}
+.postDate {
+    color: #888888;
+    font-size: 13px;
+    text-align: right;
+}
+#search {
+    margin-top: 30px;
+}
+.editButton {
+    margin-top: 14px;
+    margin-bottom: 8px;
+    background-color: #555555;
+}
+
+.editButton:hover {
+    background-color: #333333;
+}
+.backupButtons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.backupButtons button {
+    background-color: #555555;
+    font-size: 14px;
+}
+
+#importFile {
+    display: none;
+}
+@media (max-width: 600px) {
+    body {
+        padding: 20px 14px;
+    }
+
+    h1 {
+        font-size: 32px;
+    }
+
+    h2 {
+        font-size: 22px;
+    }
+
+    #posts > div {
+        padding: 14px;
+    }
+
+    #posts img {
+        max-height: 280px;
+    }
+
+    .backupButtons {
+        flex-direction: column;
+    }
+
+    button {
+        min-height: 48px;
+    }
+}</style>
+</head>
+<body>
+    <h1>FIELD</h1>
+<p>街で見つけたものを記録する。</p>
+
+<h2>新しい記録</h2>
+
+<input id="title" type="text" placeholder="タイトル">
+
+<input id="place" type="text" placeholder="場所">
+
+<textarea id="memo" placeholder="メモ"></textarea>
+
+<input type="file" id="image" accept="image/*">
+
+<button id="postButton">投稿する</button>
+
+<input id="search" type="text" placeholder="投稿を検索">
+
+<div class="backupButtons">
+    <button id="exportButton">バックアップを書き出す</button>
+    <button id="importButton">バックアップを読み込む</button>
+</div>
+
+<input id="importFile" type="file" accept=".json">
+
+<div id="posts"></div>
+
+<input id="search" type="text" placeholder="投稿を検索">
+
+<div id="posts"></div>
+    <script>
+    const titleInput = document.getElementById("title");
+    const placeInput = document.getElementById("place");
+    const memoInput = document.getElementById("memo");
+    const imageInput = document.getElementById("image");
+    const postButton = document.getElementById("postButton");
+    const searchInput = document.getElementById("search");
+    const exportButton = document.getElementById("exportButton");
+    const importButton = document.getElementById("importButton");
+    const importFile = document.getElementById("importFile");
+    const posts = document.getElementById("posts");
+
+    let savedPosts = JSON.parse(localStorage.getItem("fieldPosts")) || [];
+
+    function displayPost(postData, index) {
+    const post = document.createElement("div");
+
+    post.innerHTML = `
+        ${postData.image ? `<img src="${postData.image}" alt="投稿画像">` : ""}
+        <h3>${postData.title}</h3>
+        <p>📍 ${postData.place}</p>
+        <p>${postData.memo}</p>
+        ${postData.date ? `<p class="postDate">${postData.date}</p>` : ""}
+        <button class="editButton">編集する</button>
+        <button class="deleteButton">削除する</button>
+    `;
+
+    const editButton = post.querySelector(".editButton");
+
+editButton.addEventListener("click", function () {
+    const newTitle = prompt("タイトルを編集してください", postData.title);
+    if (newTitle === null) return;
+
+    if (newTitle.trim() === "") {
+        alert("タイトルは空にできません。");
+        return;
+    }
+
+    const newPlace = prompt("場所を編集してください", postData.place || "");
+    if (newPlace === null) return;
+
+    const newMemo = prompt("メモを編集してください", postData.memo || "");
+    if (newMemo === null) return;
+
+    savedPosts[index].title = newTitle.trim();
+    savedPosts[index].place = newPlace.trim();
+    savedPosts[index].memo = newMemo.trim();
+
+    localStorage.setItem("fieldPosts", JSON.stringify(savedPosts));
+    renderPosts();
+});
+    const deleteButton = post.querySelector(".deleteButton");
+
+    deleteButton.addEventListener("click", function () {
+        const shouldDelete = confirm("この投稿を削除しますか？");
+
+        if (shouldDelete) {
+            savedPosts.splice(index, 1);
+            localStorage.setItem("fieldPosts", JSON.stringify(savedPosts));
+            renderPosts();
+        }
+    });
+
+    posts.appendChild(post);
+}
+
+function renderPosts() {
+    posts.innerHTML = "";
+
+    savedPosts
+    .map(function (postData, index) {
+        return { postData, index };
+    })
+    .reverse()
+    .forEach(function (item) {
+        displayPost(item.postData, item.index);
+    });
+
+}
+
+renderPosts();
+
+    function renderPosts() {
+    posts.innerHTML = "";
+
+    const keyword = searchInput.value.trim().toLowerCase();
+
+    savedPosts
+        .map(function (postData, index) {
+            return { postData, index };
+        })
+        .reverse()
+        .filter(function (item) {
+            const title = item.postData.title || "";
+            const place = item.postData.place || "";
+            const memo = item.postData.memo || "";
+
+            return (
+                title.toLowerCase().includes(keyword) ||
+                place.toLowerCase().includes(keyword) ||
+                memo.toLowerCase().includes(keyword)
+            );
+        })
+        .forEach(function (item) {
+            displayPost(item.postData, item.index);
+        });
+    }
+
+    searchInput.addEventListener("input", renderPosts);
+
+    postButton.addEventListener("click", function () {
+        if (titleInput.value.trim() === "") {
+        alert("タイトルを入力してください。");
+        titleInput.focus();
+        return;
+        }
+
+        const imageFile = imageInput.files[0];
+
+        if (imageFile) {
+    const reader = new FileReader();
+
+    reader.onload = function () {
+        const image = new Image();
+
+        image.onload = function () {
+            const maxWidth = 1200;
+            let width = image.width;
+            let height = image.height;
+
+            if (width > maxWidth) {
+                height = height * (maxWidth / width);
+                width = maxWidth;
+            }
+
+            const canvas = document.createElement("canvas");
+            canvas.width = width;
+            canvas.height = height;
+
+            const context = canvas.getContext("2d");
+            context.drawImage(image, 0, 0, width, height);
+
+            const compressedImage = canvas.toDataURL("image/jpeg", 0.75);
+            savePost(compressedImage);
+        };
+
+        image.src = reader.result;
+    };
+
+    reader.readAsDataURL(imageFile);
+} else {
+    savePost();
+}
+    });
+    exportButton.addEventListener("click", function () {
+    const backupData = JSON.stringify(savedPosts, null, 2);
+    const backupFile = new Blob([backupData], {
+        type: "application/json"
+    });
+
+    const downloadUrl = URL.createObjectURL(backupFile);
+    const downloadLink = document.createElement("a");
+
+    downloadLink.href = downloadUrl;
+    downloadLink.download = "field-backup.json";
+    downloadLink.click();
+
+    URL.revokeObjectURL(downloadUrl);
+});
+
+importButton.addEventListener("click", function () {
+    importFile.click();
+});
+
+importFile.addEventListener("change", function () {
+    const selectedFile = importFile.files[0];
+
+    if (!selectedFile) {
+        return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = function () {
+        try {
+            const importedPosts = JSON.parse(reader.result);
+
+            if (!Array.isArray(importedPosts)) {
+                throw new Error("投稿データではありません");
+            }
+
+            const shouldImport = confirm(
+                "現在の投稿をバックアップ内容で置き換えますか？"
+            );
+
+            if (!shouldImport) {
+                importFile.value = "";
+                return;
+            }
+
+            localStorage.setItem(
+                "fieldPosts",
+                JSON.stringify(importedPosts)
+            );
+
+            savedPosts = importedPosts;
+            renderPosts();
+
+            alert("バックアップを読み込みました。");
+        } catch (error) {
+            alert("このファイルは読み込めませんでした。");
+        }
+
+        importFile.value = "";
+    };
+
+    reader.readAsText(selectedFile);
+});
+
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+        navigator.serviceWorker.register("./service-worker.js");
+    });
+}
+</script>
+
+</body>
+</html>

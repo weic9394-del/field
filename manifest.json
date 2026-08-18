@@ -1,0 +1,10 @@
+{
+  "name": "FIELD",
+  "short_name": "FIELD",
+  "description": "街で見つけたものを記録するアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f4f4",
+  "theme_color": "#222222",
+  "lang": "ja"
+}
