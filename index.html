@@ -169,10 +169,6 @@
 <input id="importFile" type="file" accept=".json">
 
 <div id="posts"></div>
-
-<input id="search" type="text" placeholder="投稿を検索">
-
-<div id="posts"></div>
     <script>
     const titleInput = document.getElementById("title");
     const placeInput = document.getElementById("place");
@@ -282,6 +278,33 @@ renderPosts();
     }
 
     searchInput.addEventListener("input", renderPosts);
+
+    function savePost(imageData = "") {
+    const postData = {
+        title: titleInput.value.trim(),
+        place: placeInput.value.trim(),
+        memo: memoInput.value.trim(),
+        image: imageData,
+        date: new Date().toLocaleString("ja-JP")
+    };
+
+    savedPosts.push(postData);
+
+    try {
+        localStorage.setItem("fieldPosts", JSON.stringify(savedPosts));
+    } catch (error) {
+        savedPosts.pop();
+        alert("画像が大きすぎて保存できませんでした。");
+        return;
+    }
+
+    renderPosts();
+
+    titleInput.value = "";
+    placeInput.value = "";
+    memoInput.value = "";
+    imageInput.value = "";
+}
 
     postButton.addEventListener("click", function () {
         if (titleInput.value.trim() === "") {
